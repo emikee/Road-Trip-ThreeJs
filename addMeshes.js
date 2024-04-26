@@ -2,18 +2,49 @@ import * as THREE from 'three'
 
 const textureLoader = new THREE.TextureLoader()
 
-export function addBoilerPlateMesh() {
-	const box = new THREE.BoxGeometry(0.5, 0.5, 0.5)
-	const boxMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 })
-	const boxMesh = new THREE.Mesh(box, boxMaterial)
-	boxMesh.position.set(2, 0, 0)
-	return boxMesh
+export function createTerrain() {
+	const groundGeo = new THREE.PlaneGeometry(1200, 400, 30, 40);
+	const basecolor = new THREE.TextureLoader().load( "/mat.png" )
+
+	let disMap = new THREE.TextureLoader()
+		.setPath("/")
+		.load("heightmap.webp")
+
+		disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping
+		disMap.repeat.set(1, 1)
+
+	const groundMat = new THREE.MeshStandardMaterial({
+		color: 45824,
+		map: basecolor,
+		wireframe: false,
+		displacementMap: disMap,
+		displacementScale: 120,
+	}) 
+	const groundMesh = new THREE.Mesh(groundGeo, groundMat)
+	groundMesh.position.set(-100,-1000,-100)
+	groundMesh.rotation.set(180, 0, 0)
+	return groundMesh
 }
 
-export function addStandardMesh() {
-	const box = new THREE.BoxGeometry(1, 1, 1)
-	const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 })
-	const boxMesh = new THREE.Mesh(box, boxMaterial)
-	boxMesh.position.set(-2, 0, 0)
-	return boxMesh
+export function addWindow () {
+	const geometry = new THREE.PlaneGeometry(100, 80)
+	const roughnessMap = new THREE.TextureLoader().load("/Water droplets.jpeg")
+	const texture = new THREE.TextureLoader().load("/dirtywindow.jpeg")
+
+	const material = new THREE.MeshPhysicalMaterial({
+		color: 14875647,
+		side: THREE.DoubleSide,
+		transmission: 1,
+		ior: 1.2,
+		roughness: 0.3,
+		roughnessMap: roughnessMap,
+		normalMap: roughnessMap,
+		thickness: 0.4,
+		thicknessMap: roughnessMap,
+		map: texture
+	})
+
+	const plane = new THREE.Mesh(geometry, material)
+	plane.position.set(0, 20, 450)
+	return plane
 }
