@@ -16,7 +16,7 @@ export function createTerrain() {
 		disMap.repeat.set(1, 1)
 
 	const groundMat = new THREE.MeshStandardMaterial({
-		color: 8343759,
+		color: 4343759,
 		map: basecolor,
 		displacementMap: disMap,
 		displacementScale: 100,

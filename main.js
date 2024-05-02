@@ -1,3 +1,4 @@
+//importing libraries
 import './style.css'
 import * as THREE from 'three'
 import { addWindow, createTerrain } from './addMeshes'
@@ -8,12 +9,8 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import gsap from 'gsap'
 
+//scene set up
 const scene = new THREE.Scene()
-
-let fogNear = 800
-let fogFar = 1500
-
-scene.fog = new THREE.Fog( "rgb(207, 151, 66)", fogNear, fogFar ); 
 const renderer = new THREE.WebGLRenderer({ 
 	antialias: true,
 	canvas: document.querySelector("#bg") 
@@ -26,20 +23,14 @@ const camera = new THREE.PerspectiveCamera(
 	0.01,
 	10000
 )
+camera.position.set(0, 20, 700)
 
-let sky, sun
 
-//bg sound
+//drive sound
 const listener = new THREE.AudioListener()
 camera.add( listener )
 const sound = new THREE.Audio( listener )
 const audioLoader = new THREE.AudioLoader()
-
-//bump sound
-const listener2 = new THREE.AudioListener()
-const bumpSound = new THREE.Audio( listener2 )
-const bumpLoader = new THREE.AudioLoader()
-
 audioLoader.load( "/drive.mp3", function( buffer ) {
 	sound.setBuffer( buffer );
 	sound.setLoop( true );
@@ -47,8 +38,10 @@ audioLoader.load( "/drive.mp3", function( buffer ) {
 	sound.play();
 });
 
-
-camera.position.set(0, 20, 700)
+//bump sound
+const listener2 = new THREE.AudioListener()
+const bumpSound = new THREE.Audio( listener2 )
+const bumpLoader = new THREE.AudioLoader()
 
 //Globals
 const meshes = {}
@@ -57,17 +50,19 @@ const clock = new THREE.Clock()
 const material = new THREE.ShaderMaterial
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-
+let composer
 let prevTime = performance.now();
 let moveLeft = false
 let moveRight = false
 let canJump = false
-let composer 
+//scene environment
+let fogNear = 800
+let fogFar = 1500
+let sky, sun
 let rayleigh = 1.0
 let exposure = 0.7
 let mieDirectionalG = 0.7
-let mie
-let ray
+scene.fog = new THREE.Fog( "rgb(207, 151, 66)", fogNear, fogFar ); 
 
 //camera group
 const cameraGroup = new THREE.Group()
@@ -118,8 +113,8 @@ function init() {
 
 	//post
 	composer = postprocessing(scene, camera, renderer)
-
-	//key
+	
+	//key controls
 	const onKeyDown = function ( event ) {
 		switch ( event.code ) {
 
@@ -183,7 +178,7 @@ function init() {
 	document.addEventListener( 'keydown', onKeyDown );
 	document.addEventListener( 'keyup', onKeyUp );
 
-	//button for fog
+	//button controls for fog
 	document.getElementById("yellow-scene").addEventListener("click", function() {yellowFog()}, false);
 	document.getElementById("blue-scene").addEventListener("click", function() {blueFog()}, false);
 	document.getElementById("green-scene").addEventListener("click", function() {greenFog()}, false);
@@ -196,14 +191,14 @@ function init() {
 
 	lights.direct.target = meshes.window
 
-	//tree1 model
+	//loading tree 1
 	loader.load( 'tree.glb', function ( gltf ) {
 		gltf.scene.scale.set(12,12,12);
 		gltf.scene.position.set(-10,-40,-400);
 		gltf.scene.castShadow = true;
 		scene.add( gltf.scene );
 
-			// clones
+		// clones
 		for (let i = 0; i < 8; i++) {
 			const clone = gltf.scene.clone();
 			let xPos = THREE.MathUtils.randFloat(-50, 3);
@@ -227,7 +222,7 @@ function init() {
 	
 	} );
 
-	//tree2 model
+	//loading tree 2
 	loader.load( 'treee.glb', function ( gltf ) {
 		gltf.scene.scale.set(3,3,3);
 		gltf.scene.position.set(10,-33,-300);
@@ -258,16 +253,17 @@ function init() {
 	
 	} );
 
-	//pole model
+	//loading pole model
 	loader.load( 'Electricity Poles.glb', function ( gltf ) {
 		gltf.scene.scale.set(8,8,8);
 		gltf.scene.position.set(200,-100,-400);
 		gltf.scene.castShadow = true;
 		scene.add( gltf.scene );
 
-			// clones
+		// clones
 		for (let i = 0; i < 10; i++) {
 			const clone = gltf.scene.clone();
+			
 			//styling
 			clone.position.x += 150;
 			clone.castShadow = true;
@@ -310,14 +306,7 @@ function animate() {
 	camera.updateMatrixWorld()
 	cameraGroup.updateMatrixWorld()
 
-	let uniforms = sky.material.uniforms;
-	uniforms[ 'rayleigh' ].value = rayleigh
-	uniforms[ 'mieDirectionalG' ].value = mieDirectionalG
-	renderer.toneMappingExposure = exposure
-
-
 	velocity.x -= velocity.x * 30.0 * delta;
-
 	velocity.y -= 9.8 * 800.0 * (delta * 1.2);
 
 	direction.x = Number( moveRight ) - Number( moveLeft );
@@ -338,6 +327,12 @@ function animate() {
 
 	prevTime = time;
 
+	//updating sky
+	let uniforms = sky.material.uniforms;
+	uniforms[ 'rayleigh' ].value = rayleigh
+	uniforms[ 'mieDirectionalG' ].value = mieDirectionalG
+	renderer.toneMappingExposure = exposure
+
 	composer.composer.render()
 }
 
@@ -350,6 +345,7 @@ window.onresize = function (e) {
 let oldx = 0
 let oldy = 0
 
+//parallax
 window.onmousemove = function(ev) {
 	let changex = ev.x - oldx
 	let changey = ev.y - oldy
@@ -360,6 +356,7 @@ window.onmousemove = function(ev) {
 	oldy = ev.y
 }
 
+//button functions
 function yellowFog() {
 	var initialColor = scene.fog.color
 	rayleigh = 1
