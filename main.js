@@ -8,7 +8,6 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene()
-let fog = scene.fog
 
 const fogSettings = {
 	yellow: [15111193, 800, 1500],
@@ -19,7 +18,7 @@ let fogColor = fogSettings.yellow[0]
 let fogNear = fogSettings.yellow[1]
 let fogFar = fogSettings.yellow[2]
 
-fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
+scene.fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
 const renderer = new THREE.WebGLRenderer({ 
 	antialias: true,
 	canvas: document.querySelector("#bg") 
@@ -313,9 +312,7 @@ function animate() {
 	camera.updateMatrixWorld()
 	cameraGroup.updateMatrixWorld()
 
-	//.lerpColors ( color1 : Color, color2 : Color, alpha : Float )
-	//fog.color.lerp(fogColor, 0.5)
-	//fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
+	scene.fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
 
 	let uniforms = sky.material.uniforms;
 	uniforms[ 'rayleigh' ].value = rayleigh
@@ -367,10 +364,9 @@ window.onmousemove = function(ev) {
 }
 
 function yellowFog() {
-	fog.color.lerp(fogSettings.yellow[1], 0.5)
-	// fogColor = fogSettings.yellow[0]
-	// fogNear = fogSettings.yellow[1]
-	// fogFar = fogSettings.yellow[2]
+	fogColor = fogSettings.yellow[0]
+	fogNear = fogSettings.yellow[1]
+	fogFar = fogSettings.yellow[2]
 }
 
 function blueFog() {
