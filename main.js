@@ -1,18 +1,30 @@
 import './style.css'
 import * as THREE from 'three'
 import { addWindow, createTerrain } from './addMeshes'
-import { addAmbient, addHemisphere, addRectLight, addDirect } from './addLights'
-import Model from './Model'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
+import { addAmbient, addDirect } from './addLights'
 import {postprocessing} from "./postprocessing"
 import { Sky } from 'three/addons/objects/Sky.js'
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene()
+let fog = scene.fog
+
+const fogSettings = {
+	yellow: [15111193, 800, 1500],
+	blue: [4684963, 400, 1200],
+	green: [5144403, 800, 1300]
+}
+let fogColor = fogSettings.yellow[0]
+let fogNear = fogSettings.yellow[1]
+let fogFar = fogSettings.yellow[2]
+
+fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
 const renderer = new THREE.WebGLRenderer({ 
 	antialias: true,
 	canvas: document.querySelector("#bg") 
 })
+const loader = new GLTFLoader();
 
 const camera = new THREE.PerspectiveCamera(
 	10,
@@ -20,20 +32,28 @@ const camera = new THREE.PerspectiveCamera(
 	0.01,
 	10000
 )
-// const listener = new THREE.AudioListener()
-// camera.add( listener )
-// const sound = new THREE.Audio( listener )
-// const audioLoader = new THREE.AudioLoader()
-// audioLoader.load( 'sounds/ambient.ogg', function( buffer ) {
-// 	sound.setBuffer( buffer );
-// 	sound.setLoop( true );
-// 	sound.setVolume( 0.5 );
-// 	sound.play();
-// });
+
 let sky, sun
 
+//bg sound
+const listener = new THREE.AudioListener()
+camera.add( listener )
+const sound = new THREE.Audio( listener )
+const audioLoader = new THREE.AudioLoader()
 
-// const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+//bump sound
+const listener2 = new THREE.AudioListener()
+const bumpSound = new THREE.Audio( listener2 )
+const bumpLoader = new THREE.AudioLoader()
+
+audioLoader.load( "/drive.mp3", function( buffer ) {
+	sound.setBuffer( buffer );
+	sound.setLoop( true );
+	sound.setVolume( 0 );
+	sound.play();
+});
+
+
 camera.position.set(0, 20, 700)
 
 //Globals
@@ -41,21 +61,24 @@ const meshes = {}
 const lights = {}
 const clock = new THREE.Clock()
 const material = new THREE.ShaderMaterial
-const pointerLock = new PointerLockControls( camera, document.body )
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
 
 let prevTime = performance.now();
 let moveLeft = false
 let moveRight = false
+let canJump = false
 let composer 
-let rayleigh = 1.394
+let rayleigh = 1.0
 let exposure = 0.7
 
-//controls
-const controls = new OrbitControls(camera, renderer.domElement)
-controls.enableRotate = false
-controls.enableZoom = false
+//camera group
+const cameraGroup = new THREE.Group()
+cameraGroup.add(camera)
+cameraGroup.add(addWindow())
+const pointerLock = new PointerLockControls( cameraGroup, document.body )
+meshes.window = cameraGroup
+scene.add(meshes.window)
 
 
 init()
@@ -86,68 +109,74 @@ function initSky() {
 
 }
 
-
 function init() {
 	renderer.setSize(window.innerWidth, window.innerHeight)
 
 	//meshes
 	meshes.terrain = createTerrain()
-	meshes.window = addWindow()
 
 	//lights
 	lights.ambient = addAmbient()
-	lights.hemisphere = addHemisphere()
-	lights.rectlight = addRectLight()
 	lights.direct = addDirect()
-
-	//changes
 
 	//post
 	composer = postprocessing(scene, camera, renderer)
 
 	//key
 	const onKeyDown = function ( event ) {
-
 		switch ( event.code ) {
 
 			case 'ArrowLeft':
 			case 'KeyA':
 				moveLeft = true;
+				sound.setVolume(1)
 				if (rayleigh < 6.0) {
-					rayleigh += 0.05
+					rayleigh += 0.005
 				}
 				if (exposure > 0.3) {
 					exposure -= 0.005
 				}
-				console.log(exposure)
 				break;
 
 			case 'ArrowRight':
 			case 'KeyD':
 				moveRight = true;
+				sound.setVolume(1)
 				if (rayleigh >= 0.3) {
-					rayleigh -= 0.05
+					rayleigh -= 0.005
 				}
 				if (exposure < 0.9) {
 					exposure += 0.005
 				}
 				break;
+			case 'ArrowUp':
+			case 'KeyW':
+			case 'Space':
+				if ( canJump === true ) velocity.y += 350;
+					canJump = false;
+					bumpLoader.load( "/bump.mp3", function( buffer ) {
+						bumpSound.setBuffer( buffer );
+						bumpSound.setVolume(0.6);
+						bumpSound.play();
+					});
+					break;
 		}
 
 	};
 
 	const onKeyUp = function ( event ) {
-
 		switch ( event.code ) {
 
 			case 'ArrowLeft':
 			case 'KeyA':
 				moveLeft = false;
+				sound.setVolume(0)
 				break;
 
 			case 'ArrowRight':
 			case 'KeyD':
 				moveRight = false;
+				sound.setVolume(0)
 				break;
 
 		}
@@ -157,15 +186,103 @@ function init() {
 	document.addEventListener( 'keydown', onKeyDown );
 	document.addEventListener( 'keyup', onKeyUp );
 
+	//button for fog
+	document.getElementById("yellow-scene").addEventListener("click", function() {yellowFog()}, false);
+	document.getElementById("blue-scene").addEventListener("click", function() {blueFog()}, false);
+	document.getElementById("green-scene").addEventListener("click", function() {greenFog()}, false);
+
 	//scene operations
 	scene.add(meshes.terrain)
 	scene.add(meshes.window)
 	scene.add(lights.ambient)
-	scene.add(lights.hemisphere)
-	scene.add(lights.rectlight)
 	scene.add(lights.direct)
 
 	lights.direct.target = meshes.window
+
+	//tree1 model
+	loader.load( 'tree.glb', function ( gltf ) {
+		gltf.scene.scale.set(12,12,12);
+		gltf.scene.position.set(-10,-40,-400);
+		gltf.scene.castShadow = true;
+		scene.add( gltf.scene );
+
+			// clones
+		for (let i = 0; i < 8; i++) {
+			const clone = gltf.scene.clone();
+			let xPos = THREE.MathUtils.randFloat(-50, 3);
+			let yPos = THREE.MathUtils.randFloat(0.7, 1);
+			let zPos = THREE.MathUtils.randFloat(0.8, 1.3);
+			let scale = THREE.MathUtils.randFloat(0.8, 4);
+
+			//styling
+			clone.position.x = gltf.scene.position.x * xPos;
+			clone.position.y = gltf.scene.position.y * yPos;
+			clone.position.z = gltf.scene.position.z * zPos;
+			clone.scale.set = (scale, scale, scale);
+			clone.castShadow = true;
+
+			scene.add(clone);
+		}
+	
+	}, undefined, function ( error ) {
+	
+		console.error( error );
+	
+	} );
+
+	//tree2 model
+	loader.load( 'treee.glb', function ( gltf ) {
+		gltf.scene.scale.set(3,3,3);
+		gltf.scene.position.set(10,-33,-300);
+		gltf.scene.castShadow = true;
+		scene.add( gltf.scene );
+
+			// clones
+		for (let i = 0; i < 14; i++) {
+			const clone = gltf.scene.clone();
+			let xPos = THREE.MathUtils.randFloat(-60, 2);
+			let yPos = THREE.MathUtils.randFloat(1, 1.15);
+			let zPos = THREE.MathUtils.randFloat(-0.2, 2);
+			let scale = THREE.MathUtils.randFloat(0.6, 3);
+
+			//styling
+			clone.position.x = gltf.scene.position.x * xPos;
+			clone.position.y = gltf.scene.position.y * yPos;
+			clone.position.z = gltf.scene.position.z * zPos;
+			clone.scale.set = (scale, scale, scale);
+			clone.castShadow = true;
+
+			scene.add(clone);
+		}
+	
+	}, undefined, function ( error ) {
+	
+		console.error( error );
+	
+	} );
+
+	//pole model
+	loader.load( 'Electricity Poles.glb', function ( gltf ) {
+		gltf.scene.scale.set(8,8,8);
+		gltf.scene.position.set(200,-100,-400);
+		gltf.scene.castShadow = true;
+		scene.add( gltf.scene );
+
+			// clones
+		for (let i = 0; i < 10; i++) {
+			const clone = gltf.scene.clone();
+			//styling
+			clone.position.x += 150;
+			clone.castShadow = true;
+
+			scene.add(clone);
+		}
+	
+	}, undefined, function ( error ) {
+	
+		console.error( error );
+	
+	} );
 	
 
 	initSky()
@@ -183,6 +300,7 @@ function resize() {
 	})
 }
 
+
 function animate() {
 	requestAnimationFrame(animate)
 	meshes.window.rotation.setFromRotationMatrix(camera.matrix)
@@ -192,21 +310,37 @@ function animate() {
 	meshes.terrain.rotation.x = -Math.PI/2
 	meshes.terrain.position.y = -100
 
+	camera.updateMatrixWorld()
+	cameraGroup.updateMatrixWorld()
+
+	//.lerpColors ( color1 : Color, color2 : Color, alpha : Float )
+	//fog.color.lerp(fogColor, 0.5)
+	//fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
+
 	let uniforms = sky.material.uniforms;
 	uniforms[ 'rayleigh' ].value = rayleigh
 	renderer.toneMappingExposure = exposure
 
 
-	velocity.x -= velocity.x * 15.0 * delta;
+	velocity.x -= velocity.x * 30.0 * delta;
 
-	velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+	velocity.y -= 9.8 * 800.0 * (delta * 1.2);
 
 	direction.x = Number( moveRight ) - Number( moveLeft );
 	direction.normalize(); // this ensures consistent movements in all directions
 
 	if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
-
 	pointerLock.moveRight( - velocity.x * delta );
+
+	pointerLock.getObject().position.y += ( velocity.y * delta );
+	if ( pointerLock.getObject().position.y < 2 ) {
+
+		velocity.y = 0;
+		pointerLock.getObject().position.y = 2;
+
+		canJump = true;
+
+	}
 
 	prevTime = time;
 
@@ -216,7 +350,6 @@ function animate() {
 window.onresize = function (e) {
 	camera.aspect = window.innerWidth/window.innerHeight
 	camera.updateProjectionMatrix()
-
 	renderer.setSize(window.innerWidth, window.innerHeight)
 }
 
@@ -226,9 +359,28 @@ let oldy = 0
 window.onmousemove = function(ev) {
 	let changex = ev.x - oldx
 	let changey = ev.y - oldy
-	camera.position.x += changex/200
-	camera.position.y += changey/200 
+	camera.position.x += changex/300
+	camera.position.y += changey/300 
 
 	oldx = ev.x
 	oldy = ev.y
+}
+
+function yellowFog() {
+	fog.color.lerp(fogSettings.yellow[1], 0.5)
+	// fogColor = fogSettings.yellow[0]
+	// fogNear = fogSettings.yellow[1]
+	// fogFar = fogSettings.yellow[2]
+}
+
+function blueFog() {
+	fogColor = fogSettings.blue[0]
+	fogNear = fogSettings.blue[1]
+	fogFar = fogSettings.blue[2]
+}
+
+function greenFog() {
+	fogColor = fogSettings.green[0]
+	fogNear = fogSettings.green[1]
+	fogFar = fogSettings.green[2]
 }

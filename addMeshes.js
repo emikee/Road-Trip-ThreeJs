@@ -1,24 +1,27 @@
 import * as THREE from 'three'
+import { Environment } from "@react-three/drei"
+
 
 const textureLoader = new THREE.TextureLoader()
 
 export function createTerrain() {
-	const groundGeo = new THREE.PlaneGeometry(1200, 400, 30, 40);
-	const basecolor = new THREE.TextureLoader().load( "/mat.png" )
+	const groundGeo = new THREE.PlaneGeometry(1200, 900, 30, 40);
+	const basecolor = new THREE.TextureLoader().load( "/grass.jpeg" )
+	const normal = new THREE.TextureLoader().load("/Dirt_003_OCC.png")
 
 	let disMap = new THREE.TextureLoader()
-		.setPath("/")
-		.load("heightmap.webp")
+		.load("/mountainmap.png")
 
 		disMap.wrapS = disMap.wrapT = THREE.RepeatWrapping
 		disMap.repeat.set(1, 1)
 
 	const groundMat = new THREE.MeshStandardMaterial({
-		color: 45824,
+		color: 4538164,
 		map: basecolor,
-		wireframe: false,
 		displacementMap: disMap,
-		displacementScale: 120,
+		displacementScale: 100,
+		normalMap: normal,
+		roughness: 0.8
 	}) 
 	const groundMesh = new THREE.Mesh(groundGeo, groundMat)
 	groundMesh.position.set(-100,-1000,-100)
@@ -35,8 +38,8 @@ export function addWindow () {
 		color: 14875647,
 		side: THREE.DoubleSide,
 		transmission: 1,
-		ior: 1.2,
-		roughness: 0.3,
+		ior: 1.2	,
+		roughness: 0.4,
 		roughnessMap: roughnessMap,
 		normalMap: roughnessMap,
 		thickness: 0.4,
@@ -48,3 +51,4 @@ export function addWindow () {
 	plane.position.set(0, 20, 450)
 	return plane
 }
+

@@ -2,25 +2,16 @@ import * as THREE from 'three'
 
 
 export function addAmbient() {
-	const light = new THREE.AmbientLight(0xffffff, 0.5)
-	light.position.set(1, 1, 1)
+	const light = new THREE.AmbientLight(0xffffff, 0.3)
+	light.position.set(40, 40, 1)
 	return light
 }
 
 export function addDirect() {
-	const light = new THREE.DirectionalLight(0xffffff, 0.5)
-	light.position.set(0, 1, 0)
+	const light = new THREE.DirectionalLight(15111193, 0.9)
+	const light2 = new THREE.DirectionalLight(15111193, 0.9)
+	light.position.set(120, 20, -1000)
+	light2.position.set(50, 20, 0)
 	return light
-}
-
-export function addHemisphere() {
-	const light = new THREE.HemisphereLight( 0xffffbb, 0x080820, 0.1 );
-	return light
-}
-
-export function addRectLight() {
-	const rectLight = new THREE.RectAreaLight( 0xffffff, 0.5,  10, 10 );
-	rectLight.position.set( 5, 5, 0 );
-	rectLight.lookAt( 0, 0, 0 );
-	return rectLight
+	return light2
 }
