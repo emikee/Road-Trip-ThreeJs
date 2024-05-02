@@ -16,7 +16,7 @@ export function createTerrain() {
 		disMap.repeat.set(1, 1)
 
 	const groundMat = new THREE.MeshStandardMaterial({
-		color: 4538164,
+		color: 8343759,
 		map: basecolor,
 		displacementMap: disMap,
 		displacementScale: 100,
@@ -26,6 +26,7 @@ export function createTerrain() {
 	const groundMesh = new THREE.Mesh(groundGeo, groundMat)
 	groundMesh.position.set(-100,-1000,-100)
 	groundMesh.rotation.set(180, 0, 0)
+	groundMesh.receiveShadow = true
 	return groundMesh
 }
 

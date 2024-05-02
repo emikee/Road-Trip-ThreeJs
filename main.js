@@ -5,20 +5,15 @@ import { addAmbient, addDirect } from './addLights'
 import {postprocessing} from "./postprocessing"
 import { Sky } from 'three/addons/objects/Sky.js'
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js'
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import gsap from 'gsap'
 
 const scene = new THREE.Scene()
 
-const fogSettings = {
-	yellow: [15111193, 800, 1500],
-	blue: [4684963, 400, 1200],
-	green: [5144403, 800, 1300]
-}
-let fogColor = fogSettings.yellow[0]
-let fogNear = fogSettings.yellow[1]
-let fogFar = fogSettings.yellow[2]
+let fogNear = 800
+let fogFar = 1500
 
-scene.fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
+scene.fog = new THREE.Fog( "rgb(207, 151, 66)", fogNear, fogFar ); 
 const renderer = new THREE.WebGLRenderer({ 
 	antialias: true,
 	canvas: document.querySelector("#bg") 
@@ -70,6 +65,9 @@ let canJump = false
 let composer 
 let rayleigh = 1.0
 let exposure = 0.7
+let mieDirectionalG = 0.7
+let mie
+let ray
 
 //camera group
 const cameraGroup = new THREE.Group()
@@ -94,7 +92,7 @@ function initSky() {
 	let uniforms = sky.material.uniforms;
 	uniforms[ 'turbidity' ].value = 4.5;
 	uniforms[ 'mieCoefficient' ].value = 0.009;
-	uniforms[ 'mieDirectionalG' ].value = 0.7;
+	
 
 	const phi = THREE.MathUtils.degToRad( 90 - 0.3 );
 	const theta = THREE.MathUtils.degToRad( -150 );
@@ -312,10 +310,9 @@ function animate() {
 	camera.updateMatrixWorld()
 	cameraGroup.updateMatrixWorld()
 
-	scene.fog = new THREE.Fog( fogColor, fogNear, fogFar ); 
-
 	let uniforms = sky.material.uniforms;
 	uniforms[ 'rayleigh' ].value = rayleigh
+	uniforms[ 'mieDirectionalG' ].value = mieDirectionalG
 	renderer.toneMappingExposure = exposure
 
 
@@ -364,19 +361,47 @@ window.onmousemove = function(ev) {
 }
 
 function yellowFog() {
-	fogColor = fogSettings.yellow[0]
-	fogNear = fogSettings.yellow[1]
-	fogFar = fogSettings.yellow[2]
+	var initialColor = scene.fog.color
+	rayleigh = 1
+	mieDirectionalG = 0.7
+	fogNear = 800
+	fogFar = 1500
+
+	gsap.to(initialColor, {
+		r: 0.69,
+		g: 0.388,
+		b: 0.11,
+		duration: 2
+	});
 }
 
 function blueFog() {
-	fogColor = fogSettings.blue[0]
-	fogNear = fogSettings.blue[1]
-	fogFar = fogSettings.blue[2]
+	var initialColor = scene.fog.color
+	rayleigh = 0.0
+	mieDirectionalG = 0.9
+	fogNear = 1000
+	fogFar = 1200
+
+	gsap.to(initialColor, {
+		r: 0.341,
+		g: 0.545,
+		b: 0.812,
+		duration: 2
+	});
 }
 
 function greenFog() {
-	fogColor = fogSettings.green[0]
-	fogNear = fogSettings.green[1]
-	fogFar = fogSettings.green[2]
+	var initialColor = scene.fog.color
+	rayleigh = 0.95
+	mieDirectionalG = 1
+	fogNear = 700
+	fogFar = 1300
+
+	gsap.to(initialColor, {
+		r: 0.129,
+		g: 0.369,
+		b: 0.122,
+		duration: 2
+	});
+
 }
